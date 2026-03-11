@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, HttpUrl, EmailStr
-
+from rss_ingest import ingest_podcast
+import json
 
 app = FastAPI()
 
@@ -16,7 +17,14 @@ class SubmissionCreate(BaseModel):
 
 @app.post("/submissions")
 def create_submission(payload: SubmissionCreate):
-    return {"message": "Submission received"}
+    print(payload)
+
+    
+    _rss_url = payload.rss_url
+    print(_rss_url)
+    result = ingest_podcast(f"{_rss_url}")
+    print(result)
+    return {"message": "Submission received", "data": result}
 
 
 @app.get("/podcasts/{podcast_id}")
@@ -27,3 +35,5 @@ def get_podcast(podcast_id: str):
 @app.post("/admin/approve/{submission_id}")
 def approve_submission(submission_id: str):
     return {"status": "approved"}
+
+    # to test use uvicorn app:app -- reload
