@@ -1,0 +1,87 @@
+/* Main page container */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Podcast header section */
+.header {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+/* Podcast artwork */
+.artwork {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Podcast title */
+.title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+/* Podcast description */
+.description {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #4a5568;
+  max-width: 700px;
+}
+
+/* Episodes section */
+.episodes {
+  margin-top: 2rem;
+}
+
+/* Episodes title */
+.episodes h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  color: #2d3748;
+}
+
+/* Loading / fallback messages */
+.message {
+  text-align: center;
+  font-size: 1.1rem;
+  padding: 2rem;
+  color: #4a5568;
+}
+
+/* Error state */
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .artwork {
+    width: 140px;
+    height: 140px;
+  }
+
+  .title {
+    font-size: 1.6rem;
+  }
+}

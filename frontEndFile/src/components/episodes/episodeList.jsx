@@ -1,21 +1,15 @@
-import EpisodeCard from "../episodes/episodeCard";
+import EpisodeCard from "./episodeCard";
 
-const EpisodeList = ({ episodes }) => {
+export default function EpisodeList({ episodes }) {
   return (
-    <div>
+    <div className="episode-list">
       {episodes?.length ? (
-        episodes.map((ep) => (
-          <EpisodeCard
-            key={ep.id}
-            title={ep.title}
-            date={ep.date}
-          />
+        episodes.map((episode) => (
+          <EpisodeCard key={episode.uuid} episode={episode} />
         ))
       ) : (
-        <p>No episodes</p>
+        <p>No episodes available</p>
       )}
     </div>
   );
-};
-
-export default EpisodeList;
+}

@@ -1,0 +1,66 @@
+/* Episodes list container */
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* Episode card */
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+/* Episode title */
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Episode description */
+.description {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+/* Meta information */
+.meta {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Audio player */
+.audio {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+  font-size: 0.95rem;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .list {
+    grid-template-columns: 1fr;
+  }
+}

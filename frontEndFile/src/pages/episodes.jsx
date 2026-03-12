@@ -1,13 +1,33 @@
-// src/pages/Episodes.jsx
-import React from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import EpisodeList from "../components/episodes/episodeList";
+import { fetchPodcast } from "../services/api";
+import styles from "./episodes.module.css";
 
-const Episodes = () => {
+export default function Episodes() {
+  const { id } = useParams();
+  const [episodes, setEpisodes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadEpisodes = async () => {
+      setLoading(true);
+      try {
+        const podcast = await fetchPodcast(id);
+        setEpisodes(podcast.episodes || []);
+      } catch (err) {
+        console.error("Failed to load episodes:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEpisodes();
+  }, [id]);
+
   return (
-    <div className="episodes-page">
+    <div className={styles.episodesPage}>
       <h2>Episodes</h2>
-      <p>Episodes will be displayed here once approved by admin.</p>
+      {loading ? <p>Loading...</p> : <EpisodeList episodes={episodes} />}
     </div>
   );
-};
-
-export default Episodes;
+}

@@ -1,54 +1,43 @@
-import React from "react";
-import "./dashboard.module.css";
+import { useState, useEffect } from "react";
+import EpisodeList from "../components/episodes/episodeList";
+import FeedForm from "../components/feeds/FeedForm";
+import { fetchPodcast } from "../services/api";
+import styles from "./dashboard.module.css";
 
-const Dashboard = () => {
+export default function Dashboard() {
+  const [episodes, setEpisodes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadEpisodes = async () => {
+      setLoading(true);
+      try {
+        const podcast = await fetchPodcast("example-podcast-id");
+        setEpisodes(podcast.episodes || []);
+      } catch (err) {
+        console.error("Failed to load episodes:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEpisodes();
+  }, []);
+
   return (
-    <div className="dashboard">
-
-      <div className="dashboard-header">
-        <div className="logo">
-          🎙 <span>JOSPLAY</span>
-        </div>
+    <div className={styles.dashboard}>
+      <div className={styles.header}>
         <h1>Podcast Dashboard</h1>
       </div>
 
-      <div className="upload-section">
-        <h2>Upload Podcast</h2>
-
-        <input
-          type="text"
-          placeholder="Podcast Title"
-        />
-
-        <textarea
-          placeholder="Podcast Description"
-        />
-
-        <button className="submit-btn">
-          Submit Podcast
-        </button>
+      <div className={styles.feedForm}>
+        <h2>Add Podcast Feed</h2>
+        <FeedForm />
       </div>
 
-      <div className="podcast-list">
+      <div className={styles.episodeList}>
         <h2>Episodes</h2>
-
-        <div className="podcast-grid">
-
-          <div className="podcast-card">
-            <h3>Tech Talk</h3>
-            <p>Discussing AI trends</p>
-          </div>
-
-          <div className="podcast-card">
-            <h3>Startup Stories</h3>
-            <p>Founders share experiences</p>
-          </div>
-
-        </div>
+        {loading ? <p>Loading...</p> : <EpisodeList episodes={episodes} />}
       </div>
-
     </div>
   );
-};
-
-export default Dashboard;
+}
