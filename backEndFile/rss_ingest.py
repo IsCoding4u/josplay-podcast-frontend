@@ -8,6 +8,8 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["Josplay-Capstonedb"]
 
 
+
+
 def ingest_podcast(rss_url: str):
     headers = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"

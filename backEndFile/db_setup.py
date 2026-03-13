@@ -141,11 +141,11 @@ def create_collections():
                 }
             }
         }
-        db.create_collection("episode", validator=episode_validator)
-        print("Episode collection created")
+        db.create_collection("submission", validator=submission_validator)
+        print("Submission collection created")
 
     else:
-        print("Episode collection already exists")
+        print("Submission collection already exists")
     
 
 
