@@ -3,14 +3,23 @@ import feedparser
 import uuid
 from datetime import datetime, timezone
 from pymongo import MongoClient
+from urllib.parse import urlparse
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["Josplay-Capstonedb"]
 
 
+def normalize_rss_url(url:str) -> str:
+    parsed = urlparse(url)
+    return f"{parsed.netloc}{parsed.path}".lower()
+
+
 
 
 def ingest_podcast(rss_url: str):
+
+    normalized_url = normalize_rss_url(rss_url)
+
     headers = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"
 }
@@ -25,6 +34,7 @@ def ingest_podcast(rss_url: str):
         "uuid": str(uuid.uuid4()),
         "title": feed.feed.get("title") or "This is not a real Podcast",
         "rss_url": rss_url,
+        "normalized_rss_url": normalized_url,
         "language": feed.feed.get("language", "en") or "Language unknown", 
         "status": "active",
         "health_status": "healthy",
@@ -34,7 +44,7 @@ def ingest_podcast(rss_url: str):
         "updated_at": datetime.now(timezone.utc)
     }
 
-    existing = db.podcast.find_one({"rss_url": rss_url})
+    existing = db.podcast.find_one({"normalized_rss_url": normalized_url})
 
     if existing:
         podcast_id = existing["_id"]
