@@ -1,7 +1,8 @@
+// src/pages/dashboard.jsx
 import { useState, useEffect } from "react";
 import EpisodeList from "../components/episodes/episodeList";
 import FeedForm from "../components/feeds/FeedForm";
-import { fetchPodcast } from "../services/api";
+import { fetchPodcasts } from "../services/api";
 import styles from "./dashboard.module.css";
 
 export default function Dashboard() {
@@ -9,18 +10,29 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadEpisodes = async () => {
+    const loadLatestEpisodes = async () => {
       setLoading(true);
       try {
-        const podcast = await fetchPodcast("example-podcast-id");
-        setEpisodes(podcast.episodes || []);
+        // Fetch all approved podcasts
+        const podcasts = await fetchPodcasts();
+
+        if (podcasts.length === 0) {
+          setEpisodes([]);
+          return;
+        }
+
+        // Take the latest podcast (or you can modify to show all)
+        const latestPodcast = podcasts[0];
+
+        setEpisodes(latestPodcast.feed_details?.episodes || []);
       } catch (err) {
         console.error("Failed to load episodes:", err);
       } finally {
         setLoading(false);
       }
     };
-    loadEpisodes();
+
+    loadLatestEpisodes();
   }, []);
 
   return (

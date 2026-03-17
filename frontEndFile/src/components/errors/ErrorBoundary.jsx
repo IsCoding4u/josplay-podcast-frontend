@@ -1,23 +1,29 @@
 import React from "react";
+import ErrorReport from "../ErrorReport";
 
 class ErrorBoundary extends React.Component {
-  state = { hasError: false };
+  state = { hasError: false, error: null };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Error caught by ErrorBoundary:", error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      return <h2>
-
-          Something went wrong. Refresh.
-        </h2>;
+      return (
+        <ErrorReport
+          error={this.state.error}
+          onClose={() => this.setState({ hasError: false })}
+        />
+      );
     }
 
     return this.props.children;
   }
-
 }
 
 export default ErrorBoundary;

@@ -1,5 +1,18 @@
 .list {
   display: flex;
+  padding: 2px;
+  margin: 2px;
   flex-direction: column;
   gap: 15px;
+}
+
+.episodeList {
+  display: grid;
+  gap: 16px;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: #777;
 }

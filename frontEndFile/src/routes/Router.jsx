@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Header from "../components/layout/header";
 import Footer from "../components/layout/footer";
+
 import Home from "../pages/home";
 import Dashboard from "../pages/dashboard";
 import Episodes from "../pages/episodes";
@@ -11,16 +13,17 @@ import AdminDashboard from "../components/admin/adminDashboard";
 export default function AppRouter() {
   return (
     <BrowserRouter>
+
       <Header />
 
-      <main>
+      <main style={{ minHeight: "80vh" }}>
         <Routes>
-         
+
+          {/* -------- PUBLIC ROUTES -------- */}
           <Route path="/" element={<Home />} />
 
           <Route path="/podcasts" element={<Podcasts />} />
 
-          
           <Route
             path="/podcasts/:id/episodes"
             element={<Episodes />}
@@ -28,11 +31,17 @@ export default function AppRouter() {
 
           <Route path="/dashboard" element={<Dashboard />} />
 
-          <Route path="/admin" element={<AdminDashboard />} />
+          {/* -------- ADMIN ROUTE -------- */}
+          <Route
+            path="/admin"
+            element={<AdminDashboard />}
+          />
+
         </Routes>
       </main>
 
       <Footer />
+
     </BrowserRouter>
   );
 }

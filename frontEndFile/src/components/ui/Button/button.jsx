@@ -2,30 +2,32 @@ import styles from "./button.module.css";
 import PropTypes from "prop-types";
 
 function Button({
-  text,
+  children,
   onClick,
   type = "button",
   variant = "primary",
-  disabled = false
+  disabled = false,
+  className = ""
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${styles.button} ${styles[variant]}`}
+      className={`${styles.button} ${styles[variant]} ${className}`}
     >
-      {text}
+      {children}
     </button>
   );
 }
 
 Button.propTypes = {
-  text: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
   onClick: PropTypes.func,
   type: PropTypes.oneOf(["button", "submit", "reset"]),
-  variant: PropTypes.oneOf(["primary", "success", "danger"]),
-  disabled: PropTypes.bool
+  variant: PropTypes.oneOf(["primary", "success", "danger", "secondary"]),
+  disabled: PropTypes.bool,
+  className: PropTypes.string
 };
 
 export default Button;

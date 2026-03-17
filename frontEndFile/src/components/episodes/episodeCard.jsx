@@ -1,24 +1,71 @@
+// src/components/episodes/EpisodeCard.jsx
 
+import React from "react";
 import styles from "./episodeCard.module.css";
 
 export default function EpisodeCard({ episode }) {
-  if (!episode) return null;
 
-  const formattedDate = episode.published_at
-    ? new Date(episode.published_at).toLocaleDateString()
-    : "Unknown date";
+  const image =
+    episode.image ||
+    episode.itunes_image ||
+    episode.thumbnail ||
+    null;
+
+  const audio =
+    episode.audio_url ||
+    episode.enclosure?.url ||
+    null;
+
+  const duration =
+    episode.duration ||
+    episode.itunes_duration ||
+    "N/A";
+
+  const published =
+    episode.published ||
+    episode.pubDate ||
+    null;
 
   return (
     <div className={styles.card}>
-      <h4>{episode.title}</h4>
-      {episode.audio_url && (
-        <audio controls src={episode.audio_url}>
+
+      {image && (
+        <img
+          src={image}
+          alt="Episode Artwork"
+          className={styles.thumbnail}
+        />
+      )}
+
+      <div className={styles.info}>
+
+        <h4 className={styles.title}>
+          {episode.title || "Untitled Episode"}
+        </h4>
+
+        {published && (
+          <p className={styles.date}>
+            {new Date(published).toLocaleDateString()}
+          </p>
+        )}
+
+        <p className={styles.duration}>
+          Duration: {duration}
+        </p>
+
+      </div>
+
+      {audio && (
+        <audio
+          controls
+          preload="none"
+          className={styles.audioPlayer}
+          src={audio}
+        >
           Your browser does not support the audio element.
         </audio>
       )}
-      <p>{episode.description || "No description available"}</p>
-      <p>Published: {formattedDate}</p>
-      <p>Duration: {episode.duration ?? "Unknown"} sec</p>
+
     </div>
   );
 }
