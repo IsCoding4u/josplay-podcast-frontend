@@ -153,7 +153,7 @@ def create_indexes():
 
     # PODCAST
     db.podcast.create_index("rss_url", unique=True)
-    db.podcast.create_index("normalized_rss_url", unique=True)
+    db.podcast.create_index("normalized_rss_url")
     db.podcast.create_index("status")
     db.podcast.create_index("health_status")
     db.podcast.create_index("last_polled_at")

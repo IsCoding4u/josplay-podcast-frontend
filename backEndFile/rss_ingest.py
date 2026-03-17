@@ -3,15 +3,25 @@ import feedparser
 import uuid
 from datetime import datetime, timezone
 from pymongo import MongoClient
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qsl, urlencode
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["Josplay-Capstonedb"]
 
 
-def normalize_rss_url(url:str) -> str:
+def normalize_rss_url(url: str) -> str:
     parsed = urlparse(url)
-    return f"{parsed.netloc}{parsed.path}".lower()
+    path = parsed.path or "/"
+    if path != "/" and path.endswith("/"):
+        path = path.rstrip("/")
+
+    normalized = f"{parsed.netloc}{path}"
+    if parsed.query:
+        params = parse_qsl(parsed.query, keep_blank_values=True)
+        if params:
+            normalized_query = urlencode(sorted(params))
+            normalized = f"{normalized}?{normalized_query}"
+    return normalized.lower()
 
 
 
@@ -45,6 +55,16 @@ def ingest_podcast(rss_url: str):
     }
 
     existing = db.podcast.find_one({"normalized_rss_url": normalized_url})
+    if not existing:
+        legacy_existing = db.podcast.find_one({"rss_url": rss_url})
+        if legacy_existing:
+            existing = legacy_existing
+
+            if not legacy_existing.get("normalized_rss_url"):
+                db.podcast.update_one(
+                    {"_id": legacy_existing["_id"]},
+                    {"$set": {"normalized_rss_url": normalized_url}}
+                )
 
     if existing:
         podcast_id = existing["_id"]
@@ -77,5 +97,9 @@ def ingest_podcast(rss_url: str):
 
     print("Episodes ingested")
 
-    return podcast_doc
+    return {
+        "podcast_uuid": podcast_doc["uuid"],
+        "title": podcast_doc["uuid"],
+        "rss_url": podcast_doc["rss_url"]
+    }
      

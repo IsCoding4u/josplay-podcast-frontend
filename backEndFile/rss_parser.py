@@ -211,7 +211,6 @@ def extract_episode(feed):
             )
         except Exception:
             published_at = None
-            
 
         episode.append({
             "guid": guid,
