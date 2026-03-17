@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import EpisodeList from "../components/episodes/episodeList";
-import { fetchPodcast } from "../services/api"; // ✅ FIXED
+import { fetchPodcast } from "../services/api"; 
 
 import styles from "./episodes.module.css";
 
@@ -25,7 +25,6 @@ export default function Episodes() {
 
       try {
 
-        // ✅ use correct API function
         const podcast = await fetchPodcast(id);
 
         const eps =

@@ -4,7 +4,6 @@
   padding: 2rem;
 }
 
-/* Header area */
 .hero {
   margin-bottom: 2rem;
   text-align: center;
@@ -23,7 +22,7 @@
   line-height: 1.5;
 }
 
-/* Form section */
+
 .formSection {
   background: #ffffff;
   border-radius: 10px;
@@ -32,7 +31,6 @@
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .container {
     padding: 1.5rem;

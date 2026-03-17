@@ -1,4 +1,3 @@
-// src/components/episodes/EpisodeCard.jsx
 
 import React from "react";
 import styles from "./episodeCard.module.css";

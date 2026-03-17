@@ -13,7 +13,7 @@ export default function Dashboard() {
     const loadLatestEpisodes = async () => {
       setLoading(true);
       try {
-        // Fetch all approved podcasts
+        
         const podcasts = await fetchPodcasts();
 
         if (podcasts.length === 0) {
@@ -21,7 +21,7 @@ export default function Dashboard() {
           return;
         }
 
-        // Take the latest podcast (or you can modify to show all)
+       
         const latestPodcast = podcasts[0];
 
         setEpisodes(latestPodcast.feed_details?.episodes || []);

@@ -19,7 +19,7 @@ export default function AppRouter() {
       <main style={{ minHeight: "80vh" }}>
         <Routes>
 
-          {/* -------- PUBLIC ROUTES -------- */}
+        
           <Route path="/" element={<Home />} />
 
           <Route path="/podcasts" element={<Podcasts />} />
@@ -31,7 +31,7 @@ export default function AppRouter() {
 
           <Route path="/dashboard" element={<Dashboard />} />
 
-          {/* -------- ADMIN ROUTE -------- */}
+         
           <Route
             path="/admin"
             element={<AdminDashboard />}

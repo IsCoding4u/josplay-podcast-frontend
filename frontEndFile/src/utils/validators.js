@@ -8,12 +8,12 @@ export const validateRSS = (url) => {
   try {
     const parsed = new URL(trimmedUrl);
 
-    // Allow only HTTP or HTTPS
+   
     if (!["http:", "https:"].includes(parsed.protocol)) {
       return "Only HTTP or HTTPS RSS feeds are allowed";
     }
 
-    // Basic malicious pattern check
+    
     const lower = trimmedUrl.toLowerCase();
     const maliciousPatterns = ["<script", "javascript:", "data:", "vbscript:"];
 
@@ -21,7 +21,7 @@ export const validateRSS = (url) => {
       return "Malicious input detected";
     }
 
-    // Optional: ensure it looks like an RSS feed
+    
     if (
       !trimmedUrl.endsWith(".xml") &&
       !trimmedUrl.includes("rss") &&

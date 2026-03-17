@@ -1,10 +1,8 @@
-// src/services/api.js
+
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
 
-/**
- * Generic fetch helper with timeout + JSON parsing + strong error handling
- */
+
 async function handleFetch(url, options = {}, timeout = 15000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -42,9 +40,7 @@ async function handleFetch(url, options = {}, timeout = 15000) {
   }
 }
 
-//
-// ==================== VALIDATORS ====================
-//
+
 
 function validateSubmission(data) {
   if (!data) throw new Error("No data provided");
@@ -58,7 +54,6 @@ function validateSubmission(data) {
   if (!data.contact_email?.includes("@"))
     throw new Error("Invalid email address");
 
-  // ---------------- RSS URL validation ----------------
   const rssUrl = (data.rss_url || "").trim();
   const urlPattern = /^https?:\/\/\S+$/i; // allows http:// or https://
   if (!rssUrl || !urlPattern.test(rssUrl)) {
@@ -73,9 +68,7 @@ function validateSubmission(data) {
   return true;
 }
 
-//
-// ==================== SUBMISSIONS ====================
-//
+
 
 export async function submitPodcast(data, onSubmitting = null) {
   validateSubmission(data);
@@ -83,7 +76,7 @@ export async function submitPodcast(data, onSubmitting = null) {
   if (onSubmitting) onSubmitting(true);
 
   try {
-    // remove null/undefined fields
+    
     const cleanBody = Object.fromEntries(
       Object.entries(data).filter(([_, v]) => v != null && v !== "")
     );
@@ -105,9 +98,7 @@ export async function fetchPendingSubmissions() {
   return handleFetch(`${API_BASE}/submissions/pending`);
 }
 
-/**
- * Used for Admin preview modal
- */
+
 export async function fetchSubmissionDetails(submissionId) {
   if (!submissionId) {
     throw new Error("Submission ID is required");
@@ -118,9 +109,7 @@ export async function fetchSubmissionDetails(submissionId) {
   );
 }
 
-//
-// ==================== ADMIN ====================
-//
+
 
 export async function approveSubmission(submissionId) {
   if (!submissionId) {
@@ -144,9 +133,6 @@ export async function rejectSubmission(submissionId) {
   );
 }
 
-//
-// ==================== PODCASTS ====================
-//
 
 export async function fetchPodcasts() {
   return handleFetch(`${API_BASE}/podcasts`);

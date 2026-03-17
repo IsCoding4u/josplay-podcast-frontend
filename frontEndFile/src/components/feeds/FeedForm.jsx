@@ -1,4 +1,3 @@
-// src/components/feeds/FeedForm.jsx
 import React, { useState, useRef } from "react";
 import styles from "./feedform.module.css";
 import Button from "../ui/Button/button";
@@ -19,13 +18,14 @@ export default function FeedForm() {
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
 
-  // ---------------- Handle Input Changes ----------------
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // ---------------- Handle Form Submission ----------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -35,9 +35,11 @@ export default function FeedForm() {
 
     try {
       const res = await submitPodcast(form);
-      alert(`✅ ${res.message || "Podcast submitted successfully"}\nEpisodes Found: ${res.episodes_found}`);
 
-      // Reset form
+      alert(
+        ` ${res.message || "Podcast submitted successfully"}\nEpisodes Found: ${res.episodes_found}`
+      );
+
       setForm({
         first_name: "",
         last_name: "",
@@ -51,15 +53,14 @@ export default function FeedForm() {
     } catch (err) {
       console.error(err);
 
-      // Show user-friendly messages based on HTTP status
       if (err.status === 409) {
-        alert("❌ This RSS feed has already been submitted or approved.");
+        alert(" This RSS feed has already been submitted or approved.");
       } else if (err.status === 400) {
-        alert("⚠️ Invalid submission: Check your RSS feed URL or podcast name.");
+        alert(" Invalid submission: Check your RSS feed URL or podcast name.");
       } else if (err.status === 408) {
-        alert("⏰ Request timed out. Try again later.");
+        alert(" Request timed out. Try again later.");
       } else {
-        alert(`❌ Submission failed: ${err.message}`);
+        alert(` Submission failed: ${err.message}`);
       }
     } finally {
       submittingRef.current = false;
@@ -77,6 +78,7 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
+
         <input
           name="last_name"
           placeholder="Last Name"
@@ -84,6 +86,7 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
+
         <input
           name="rss_url"
           placeholder="RSS Feed URL"
@@ -91,6 +94,7 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
+
         <input
           name="contact_email"
           type="email"
@@ -99,24 +103,28 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
+
         <input
           name="podcast_name"
           placeholder="Podcast Name (optional)"
           value={form.podcast_name}
           onChange={handleChange}
         />
+
         <input
           name="country"
           placeholder="Country"
           value={form.country}
           onChange={handleChange}
         />
+
         <input
           name="language"
           placeholder="Language"
           value={form.language}
           onChange={handleChange}
         />
+
         <textarea
           name="notes"
           placeholder="Additional Notes"

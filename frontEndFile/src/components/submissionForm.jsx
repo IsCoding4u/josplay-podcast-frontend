@@ -19,18 +19,15 @@ export default function FeedForm() {
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
 
-  // ---------------- Handle Input Change ----------------
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ---------------- Handle Submit ----------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
 
-    // Simple frontend validation
     if (!form.first_name || !form.last_name || !form.rss_url || !form.contact_email) {
       alert("Please fill in all required fields.");
       return;
@@ -43,7 +40,7 @@ export default function FeedForm() {
       const res = await submitPodcast(form);
       alert(res.message || "Podcast submitted successfully!");
 
-      // Reset form
+      
       setForm({
         first_name: "",
         last_name: "",
