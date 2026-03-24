@@ -76,3 +76,10 @@ vite.config.ts.timestamp-*
 # Compiled addons
 build/Release/
 lib-cov/
+# ignore backend completely
+backEndFile/
+
+# common ignores
+node_modules/
+__pycache__/
+.env
