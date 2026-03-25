@@ -9,7 +9,7 @@ export default function Home() {
       <div className={styles.hero}>
         <h1 className={styles.title}>Submit Your Podcast</h1>
         <p className={styles.subtitle}>
-          Enter your podcast details below. Our admin team will review and approve
+          Enter your podcast details below. Note that an editor will review and approve
           your podcast before it goes live on the platform.
         </p>
       </div>

@@ -1,6 +1,6 @@
-
-const API_BASE =
-  process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
+const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_KEY;
+console.log("Admin API Key Loaded:", process.env.REACT_APP_ADMIN_KEY);
 
 const handleFetch = async (url, options = {}, timeout = 15000) => {
   const controller = new AbortController();
@@ -10,6 +10,10 @@ const handleFetch = async (url, options = {}, timeout = 15000) => {
     const res = await fetch(url, {
       ...options,
       signal: controller.signal,
+      headers: {
+        ...(options.headers || {}),
+        ...(ADMIN_API_KEY ? { "x-Admin-API-key": ADMIN_API_KEY } : {}),
+      },
     });
 
     let data;
@@ -21,12 +25,9 @@ const handleFetch = async (url, options = {}, timeout = 15000) => {
 
     if (!res.ok) {
       throw new Error(
-        data.detail ||
-          data.message ||
-          `Request failed (${res.status})`
+        data.detail || data.message || `Request failed (${res.status})`
       );
     }
-
     return data;
   } catch (err) {
     if (err.name === "AbortError") {
@@ -38,34 +39,25 @@ const handleFetch = async (url, options = {}, timeout = 15000) => {
   }
 };
 
-
 const validateSubmission = (data) => {
   if (!data) throw new Error("No data provided");
 
-  if (!data.first_name?.trim())
-    throw new Error("First name is required");
-
-  if (!data.last_name?.trim())
-    throw new Error("Last name is required");
-
-  if (!data.contact_email?.includes("@"))
-    throw new Error("Invalid email address");
+  if (!data.first_name?.trim()) throw new Error("First name is required");
+  if (!data.last_name?.trim()) throw new Error("Last name is required");
+  if (!data.contact_email?.includes("@")) throw new Error("Invalid email address");
 
   const rssUrl = (data.rss_url || "").trim();
   const urlPattern = /^https?:\/\/\S+$/i;
-
   if (!rssUrl || !urlPattern.test(rssUrl)) {
     const err = new Error("Invalid RSS URL");
     err.status = 400;
     throw err;
   }
 
-  if (data.notes && data.notes.length > 500)
-    throw new Error("Notes too long");
+  if (data.notes && data.notes.length > 500) throw new Error("Notes too long");
 
   return true;
 };
-
 
 export const submitPodcast = async (data, onSubmitting = null) => {
   validateSubmission(data);
@@ -79,9 +71,7 @@ export const submitPodcast = async (data, onSubmitting = null) => {
 
     return await handleFetch(`${API_BASE}/submissions`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cleanBody),
     });
   } finally {
@@ -118,24 +108,18 @@ export const rejectSubmission = async (submissionId) => {
   );
 };
 
-
-export const fetchPodcasts = async () =>
-  handleFetch(`${API_BASE}/podcasts`);
+export const fetchPodcasts = async () => handleFetch(`${API_BASE}/podcasts`);
 
 export const fetchPodcast = async (podcastId) => {
   if (!podcastId) throw new Error("Podcast ID is required");
 
-  return handleFetch(
-    `${API_BASE}/podcasts/${encodeURIComponent(podcastId)}`
-  );
+  return handleFetch(`${API_BASE}/podcasts/${encodeURIComponent(podcastId)}`);
 };
-
 
 export const checkHealth = async (id) => {
   if (!id) throw new Error("Podcast ID is required");
 
-  return handleFetch(
-    `${API_BASE}/podcasts/${encodeURIComponent(id)}/check-health`,
-    { method: "POST" }
-  );
+  return handleFetch(`${API_BASE}/podcasts/${encodeURIComponent(id)}/check-health`, {
+    method: "POST",
+  });
 };
