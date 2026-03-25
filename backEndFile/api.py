@@ -10,15 +10,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl, EmailStr
 from pymongo import MongoClient
 from typing import Optional
+from dotenv import load_dotenv
+load_dotenv()
  
-from rss_ingest import ingest_podcast
-from rss_parser import validate_rss_url
+from rss_ingest import ingest_podcast, normalize_rss_url
+from rss_parser import validate_rss_url, InvalidURLError, RSSFetchError
  
  
  
 app = FastAPI()
  
-client = MongoClient("mongodb://localhost:27017")
+client = MongoClient(os.getenv("MONGO_URL", "mongodb://localhost:27017"))
 db = client["Josplay-Capstonedb"]
  
  
@@ -52,13 +54,40 @@ class SubmissionCreate(BaseModel):
     country: Optional[str] = None
     language: Optional[str] = None
     notes: Optional[str] = None
+
+
+def safe_fetch(rss_url: str, timeout: int = 30) -> requests.Response:
+    headers = {"User-Agent": "JosplayPodcastBot/1.0"}
+    current_url = rss_url
+    max_redirects = 5
+
+    for _ in range(max_redirects):
+        response = requests.get(
+            current_url,
+            headers=headers,
+            timeout=timeout,
+            allow_redirects=False,
+        )
+        if response.is_redirect or response.status_code in (301, 302, 303, 307, 308):
+            next_url = response.headers.get("Location")
+            if not next_url:
+                break
+            try:
+                validate_rss_url(next_url)
+            except InvalidURLError as e:
+                raise InvalidURLError(f"Redirect to unsafe URL blocked: {e}")
+            current_url = next_url
+            continue
+        return response
+    raise RSSFetchError(" Too many redirects")
  
 
  
 def check_feed_health(rss_url: str) -> dict:
     start = time.time()
     try:
-        response = requests.get(rss_url, timeout=30,headers={"User-Agent": "JosplayPodcastBot/1.0"},)
+        validate_rss_url(rss_url)
+        response = safe_fetch(rss_url, timeout=30)
         duration = (time.time() - start) * 1000
  
         if response.status_code != 200:
@@ -77,7 +106,9 @@ def check_feed_health(rss_url: str) -> dict:
             }
  
         return {"status": "healthy", "error": None, "response_time": duration}
- 
+    except InvalidURLError as e:
+        return {"status": "broken", "error": f"Invalid URL: {str(e)}", "response_time": None}
+    
     except Exception as e:
         return {"status": "broken", "error": str(e), "response_time": None}
  
@@ -90,29 +121,29 @@ def create_submission(payload: SubmissionCreate):
     
     try:
         validate_rss_url(rss_url)
-    except ValueError as exc:
+    except InvalidURLError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    
+    normalized_url = normalize_rss_url(rss_url)
  
     
-    if db.submission.find_one({"rss_url": rss_url}) or db.podcast.find_one({"rss_url": rss_url}):
+    if db.submission.find_one({"normalized_rss_url": normalized_url}) or db.podcast.find_one({"normalized_rss_url": normalized_url}):
         raise HTTPException(status_code=409, detail="This RSS feed has already been submitted")
  
    
     try:
-        feed_response = requests.get(
-            rss_url,
-            timeout=30,
-            headers={"User-Agent": "JosplayPodcastBot/1.0"},
-        )
+        feed_response = safe_fetch(rss_url, timeout=30)
         feed = feedparser.parse(feed_response.content)
+    except InvalidURLError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except requests.exceptions.Timeout:
         raise HTTPException(
             status_code=504,
-            detail="RSS feed took too long to respond. The feed may be slow or temporarily unavailable — try again shortly.",
+            detail="RSS feed took too long to respond. Try again shortly.",
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Could not reach RSS feed: {str(e)}")
- 
+            
     if feed.bozo:
         raise HTTPException(status_code=400, detail="Malformed RSS feed")
  
@@ -126,6 +157,7 @@ def create_submission(payload: SubmissionCreate):
         "first_name": payload.first_name.strip(),
         "last_name": payload.last_name.strip(),
         "rss_url": rss_url,
+        "normalized_rss_url": normalized_url,
         "contact_email": str(payload.contact_email).lower(),
         "podcast_name": podcast_name.strip(),
         "country": payload.country,
@@ -172,19 +204,17 @@ def create_submission(payload: SubmissionCreate):
  
 @app.get("/submissions/pending")
 def get_pending_submissions(admin_api_key: str = Depends(get_admin_api_key)):
-    data = list(db.submission.find({"status": "pending_review"}))
-    for d in data:
-        d["_id"] = str(d["_id"])
+    data = list(db.submission.find({"status": "pending_review"}, {"_id": 0}))
     return data
+
  
  
  
 @app.get("/submissions/{submission_id}")
 def get_submission(submission_id: str):
-    sub = db.submission.find_one({"uuid": submission_id})
+    sub = db.submission.find_one({"uuid": submission_id}, {"_id": 0})
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
-    sub["_id"] = str(sub["_id"])
     return sub
  
  
@@ -196,7 +226,8 @@ def approve_submission(
     sub = db.submission.find_one({"uuid": submission_id})
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
- 
+    
+    normalized = sub.get("normalized_rss_url") or normalize_rss_url(sub["rss_url"])
     existing = db.podcast.find_one({"rss_url": sub["rss_url"]})
     if existing:
         return {"message": "Already approved", "uuid": existing["uuid"]}
@@ -205,6 +236,7 @@ def approve_submission(
         "uuid": str(uuid.uuid4()),
         "title": sub["podcast_name"],
         "rss_url": sub["rss_url"],
+        "normalized_rss_url": normalized,
         "language": sub.get("language", "en"),
         "status": "active",
         "health_status": "healthy",
@@ -275,18 +307,25 @@ def get_podcasts():
  
 @app.get("/podcasts/{podcast_id}")
 def get_podcast(podcast_id: str):
+    podcast = db.podcast.find_one({"uuid": podcast_id}, {"_id": 0})
+    if not podcast:
+        raise HTTPException(status_code=404, detail="Podcast not found")
+    return podcast
+
+@app.get("/podcasts/{podcast_id}/episodes")
+def get_podcast_episodes(podcast_id: str):
+    
     podcast = db.podcast.find_one({"uuid": podcast_id})
     if not podcast:
         raise HTTPException(status_code=404, detail="Podcast not found")
  
-    eps = list(db.episode.find({"podcast_id": podcast["_id"]}))
-    for e in eps:
-        e["_id"] = str(e["_id"])
-        e["podcast_id"] = str(e["podcast_id"])
- 
-    podcast["_id"] = str(podcast["_id"])
-    podcast["episodes"] = eps
-    return podcast
+    eps = list(
+        db.episode.find(
+            {"podcast_id": podcast["_id"], "is_active": True},
+            {"_id": 0, "podcast_id": 0},
+        )
+    )
+    return {"podcast_uuid": podcast_id, "episodes": eps, "count": len(eps)}
  
  
  

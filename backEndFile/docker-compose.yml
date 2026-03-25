@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+
+  mongodb:
+    image: mongo:7.0
+    container_name: josplay-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+
+  api:
+    build: .
+    container_name: josplay-api
+    restart: unless-stopped
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - MONGO_URL=mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+
+  poller:
+    build: .
+    container_name: josplay-poller
+    restart: unless-stopped
+    command: python3 pollers.py 
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+
+volumes:
+  mongo_data:
+    driver: local
+
