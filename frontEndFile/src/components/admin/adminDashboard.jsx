@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import styles from "./admin.module.css";
 
 import {
@@ -13,15 +13,19 @@ import {
 import Button from "../ui/Button/button";
 import Modal from "../ui/Modal/modal";
 import EpisodeList from "../episodes/episodeList";
+import Pagination from "../ui/pagination/pagination"; 
+
+const ITEMS_PER_PAGE = 6;
 
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState([]);
   const [approvedPodcasts, setApprovedPodcasts] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [approvedPage, setApprovedPage] = useState(1);
 
   const submittingRef = useRef({});
 
-  // ---------------- Load Pending Submissions ----------------
+  
   const loadSubmissions = async () => {
     try {
       const data = await fetchPendingSubmissions();
@@ -32,11 +36,15 @@ export default function AdminDashboard() {
     }
   };
 
-  // ---------------- Load Approved Podcasts ----------------
+ 
   const loadApprovedPodcasts = async () => {
     try {
       const data = await fetchPodcasts();
-      setApprovedPodcasts(data || []);
+      
+      const sorted = (data || []).sort(
+        (a, b) => new Date(b.approved_at || b.created_at) - new Date(a.approved_at || a.created_at)
+      );
+      setApprovedPodcasts(sorted);
     } catch (err) {
       console.error(err);
       alert(`Failed to load approved podcasts: ${err.message}`);
@@ -48,7 +56,7 @@ export default function AdminDashboard() {
     loadApprovedPodcasts();
   }, []);
 
-  // ---------------- Approve / Reject Submission ----------------
+ 
   const handleSubmission = async (submission, action) => {
     const { uuid } = submission;
     if (submittingRef.current[uuid]) return;
@@ -72,7 +80,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // ---------------- Modal Loader ----------------
+ 
   const openModal = async (entity) => {
     setSelected({ ...entity, loading: true, feed_details: null });
     try {
@@ -96,11 +104,23 @@ export default function AdminDashboard() {
     }
   };
 
+ 
+  const totalApprovedPages = useMemo(
+    () => Math.ceil(approvedPodcasts.length / ITEMS_PER_PAGE),
+    [approvedPodcasts]
+  );
+
+  const displayedApproved = useMemo(() => {
+    const start = (approvedPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return approvedPodcasts.slice(start, end);
+  }, [approvedPodcasts, approvedPage]);
+
   return (
     <div className={styles.container}>
       <h2>Admin Dashboard</h2>
 
-      {/* ---------------- Pending Submissions ---------------- */}
+     
       <section>
         <h3>Pending Podcast Submissions</h3>
         {submissions.length === 0 && <p>No pending submissions.</p>}
@@ -109,41 +129,25 @@ export default function AdminDashboard() {
           <div key={sub.uuid} className={styles.card}>
             <div>
               <h4>{sub.podcast_name || "Untitled Podcast"}</h4>
-              <p>
-                {sub.first_name} {sub.last_name}
-              </p>
+              <p>{sub.first_name} {sub.last_name}</p>
               <p>{sub.contact_email}</p>
             </div>
 
             <div className={styles.actions}>
-              <Button variant="primary" onClick={() => openModal(sub)}>
-                Details
-              </Button>
-
-              <Button
-                variant="success"
-                onClick={() => handleSubmission(sub, "approve")}
-              >
-                Approve
-              </Button>
-
-              <Button
-                variant="danger"
-                onClick={() => handleSubmission(sub, "reject")}
-              >
-                Reject
-              </Button>
+              <Button variant="primary" onClick={() => openModal(sub)}>Details</Button>
+              <Button variant="success" onClick={() => handleSubmission(sub, "approve")}>Approve</Button>
+              <Button variant="danger" onClick={() => handleSubmission(sub, "reject")}>Reject</Button>
             </div>
           </div>
         ))}
       </section>
 
-      {/* ---------------- Approved Podcasts ---------------- */}
+     
       <section style={{ marginTop: "2rem" }}>
         <h3>Approved Podcasts</h3>
         {approvedPodcasts.length === 0 && <p>No approved podcasts yet.</p>}
 
-        {approvedPodcasts.map((podcast) => (
+        {displayedApproved.map((podcast) => (
           <div
             key={podcast.uuid}
             className={styles.card}
@@ -160,17 +164,23 @@ export default function AdminDashboard() {
               />
             )}
             <p>{podcast.feed_details?.description || "-"}</p>
-            <p>
-              <b>Status:</b> {podcast.status}
-            </p>
-            <p>
-              <b>Episodes:</b> {podcast.feed_details?.episodes?.length || 0}
-            </p>
+            <p><b>Status:</b> {podcast.status}</p>
+            <p><b>Episodes:</b> {podcast.feed_details?.episodes?.length || 0}</p>
           </div>
         ))}
+
+        {totalApprovedPages > 1 && (
+          <div style={{ marginTop: "1rem" }}>
+            <Pagination
+              currentPage={approvedPage}
+              totalPages={totalApprovedPages}
+              onPageChange={setApprovedPage}
+            />
+          </div>
+        )}
       </section>
 
-      {/* ---------------- Modal ---------------- */}
+     
       <Modal
         isOpen={!!selected}
         onClose={() => setSelected(null)}
@@ -180,27 +190,11 @@ export default function AdminDashboard() {
           <div>
             <p>
               <b>RSS URL:</b>{" "}
-              <a
-                href={selected.rss_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {selected.rss_url}
-              </a>
+              <a href={selected.rss_url} target="_blank" rel="noopener noreferrer">{selected.rss_url}</a>
             </p>
-
-            <p>
-              <b>Country:</b> {selected.country || "-"}
-            </p>
-            <p>
-              <b>Language:</b> {selected.language || "-"}
-            </p>
-            <p>
-              <b>Submitted:</b>{" "}
-              {selected.created_at
-                ? new Date(selected.created_at).toLocaleString()
-                : "-"}
-            </p>
+            <p><b>Country:</b> {selected.country || "-"}</p>
+            <p><b>Language:</b> {selected.language || "-"}</p>
+            <p><b>Submitted:</b> {selected.created_at ? new Date(selected.created_at).toLocaleString() : "-"}</p>
 
             {selected.loading && <p>Loading feed details...</p>}
 
@@ -216,9 +210,7 @@ export default function AdminDashboard() {
                   />
                 )}
                 <p>{selected.feed_details.description || "-"}</p>
-                <p>
-                  Episodes: {selected.feed_details.episodes?.length || 0}
-                </p>
+                <p>Episodes: {selected.feed_details.episodes?.length || 0}</p>
 
                 <EpisodeList
                   episodes={selected.feed_details.episodes || []}

@@ -1,0 +1,19 @@
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.pageButton, .navButton {
+  min-width: 40px;
+  padding: 0.5rem 0.8rem;
+  text-align: center;
+}
+
+.ellipsis {
+  padding: 0.5rem 0.8rem;
+  font-weight: bold;
+}

@@ -1,16 +1,15 @@
 import { useState, useMemo } from "react";
 import EpisodeCard from "./episodeCard";
+import Pagination from "../ui/pagination/pagination"; 
 import styles from "./episodeList.module.css";
 
 export default function EpisodeList({ episodes = [], itemsPerPage = 5 }) {
   const [currentPage, setCurrentPage] = useState(1);
 
- 
   const totalPages = useMemo(
     () => Math.ceil(episodes.length / itemsPerPage),
     [episodes, itemsPerPage]
   );
-
 
   const currentEpisodes = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -18,32 +17,27 @@ export default function EpisodeList({ episodes = [], itemsPerPage = 5 }) {
     return episodes.slice(start, end);
   }, [currentPage, episodes, itemsPerPage]);
 
-  const handleNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const handleBack = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-
- 
   if (!episodes || episodes.length === 0) {
-    return <p>No episodes available.</p>;
+    return <p className="mb-4">No episodes available.</p>;
   }
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} p-4`}>
       {currentEpisodes.map((ep, idx) => (
-        <EpisodeCard key={ep.guid || idx} episode={ep} />
+        <div key={ep.guid || idx} className="mb-4">
+          <EpisodeCard episode={ep} />
+        </div>
       ))}
 
-     
-      <div className={styles.pagination}>
-        <button onClick={handleBack} disabled={currentPage === 1}>
-          ⬅ Back
-        </button>
-        <span>
-          Page {currentPage} of {totalPages}
-        </span>
-        <button onClick={handleNext} disabled={currentPage === totalPages}>
-          Next ➡
-        </button>
-      </div>
+      {totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 }
