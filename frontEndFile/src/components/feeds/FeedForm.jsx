@@ -9,9 +9,7 @@ export default function FeedForm() {
     last_name: "",
     rss_url: "",
     contact_email: "",
-    podcast_name: "",
     country: "",
-    language: "",
     notes: "",
   });
 
@@ -20,10 +18,7 @@ export default function FeedForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -35,33 +30,21 @@ export default function FeedForm() {
 
     try {
       const res = await submitPodcast(form);
-
-      alert(
-        ` ${res.message || "Podcast submitted successfully"}\nEpisodes Found: ${res.episodes_found}`
-      );
-
+      alert(`${res.message || "Podcast submitted successfully"}\nEpisodes Found: ${res.episodes_found}`);
       setForm({
         first_name: "",
         last_name: "",
         rss_url: "",
         contact_email: "",
-        podcast_name: "",
         country: "",
-        language: "",
         notes: "",
       });
     } catch (err) {
       console.error(err);
-
-      if (err.status === 409) {
-        alert(" This RSS feed has already been submitted or approved.");
-      } else if (err.status === 400) {
-        alert(" Invalid submission: Check your RSS feed URL or podcast name.");
-      } else if (err.status === 408) {
-        alert(" Request timed out. Try again later.");
-      } else {
-        alert(` Submission failed: ${err.message}`);
-      }
+      if (err.status === 409) alert("This RSS feed has already been submitted or approved.");
+      else if (err.status === 400) alert("Invalid submission: Check your RSS feed URL.");
+      else if (err.status === 408) alert("Request timed out. Try again later.");
+      else alert(`Submission failed: ${err.message}`);
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -78,7 +61,6 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
-
         <input
           name="last_name"
           placeholder="Last Name"
@@ -86,7 +68,6 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
-
         <input
           name="rss_url"
           placeholder="RSS Feed URL"
@@ -94,7 +75,6 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
-
         <input
           name="contact_email"
           type="email"
@@ -103,28 +83,12 @@ export default function FeedForm() {
           onChange={handleChange}
           required
         />
-
-        <input
-          name="podcast_name"
-          placeholder="Podcast Name (optional)"
-          value={form.podcast_name}
-          onChange={handleChange}
-        />
-
         <input
           name="country"
           placeholder="Country"
           value={form.country}
           onChange={handleChange}
         />
-
-        <input
-          name="language"
-          placeholder="Language"
-          value={form.language}
-          onChange={handleChange}
-        />
-
         <textarea
           name="notes"
           placeholder="Additional Notes"

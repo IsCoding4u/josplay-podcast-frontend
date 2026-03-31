@@ -145,3 +145,10 @@
 .detailContent::-webkit-scrollbar-track {
   background: #f3f4f6;
 }
+.modalActions {
+  display: flex;
+  justify-content: center;   /* centers horizontally */
+  align-items: center;
+  gap: 12px;
+  margin-top: 1.5rem;
+}

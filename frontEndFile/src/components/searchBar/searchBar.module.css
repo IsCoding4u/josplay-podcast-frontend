@@ -1,0 +1,24 @@
+.searchContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.5rem auto;
+  max-width: 600px;
+  width: 100%;
+}
+
+.input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6; /* professional blue */
+  box-shadow: 0 0 5px rgba(59, 130, 246, 0.4);
+}

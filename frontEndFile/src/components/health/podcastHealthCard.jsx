@@ -1,13 +1,7 @@
-import Button from "../ui/Button/button";
 import HealthBadge from "./healthBadge";
 import styles from "./podcastHealthCard.module.css";
 
-export default function PodcastHealthCard({
-  podcast,
-  onCheckHealth,
-  loadingId,
-}){
-  const isLoading = loadingId === podcast.uuid;
+export default function PodcastHealthCard({ podcast }) {
 
   return (
     <div className={styles.card}>
@@ -20,7 +14,6 @@ export default function PodcastHealthCard({
         <HealthBadge status={podcast.health_status || "unknown"} />
       </div>
 
-      
       <div className={styles.row}>
         <span className={styles.label}>Last Checked:</span>
         <span>
@@ -30,32 +23,20 @@ export default function PodcastHealthCard({
         </span>
       </div>
 
-     
       <div className={styles.row}>
         <span className={styles.label}>Response Time:</span>
         <span>
-          {podcast.response_time_ms
+          {podcast.response_time_ms !== undefined
             ? `${Math.round(podcast.response_time_ms)} ms`
             : "-"}
         </span>
       </div>
 
-    
       {podcast.error_message && (
         <div className={styles.error}>
           ⚠ {podcast.error_message}
         </div>
       )}
-
-     
-      <div className={styles.actions}>
-        <Button
-          onClick={() => onCheckHealth(podcast.uuid)}
-          disabled={isLoading}
-        >
-          {isLoading ? "Checking..." : "Check Health"}
-        </Button>
-      </div>
     </div>
   );
 }
