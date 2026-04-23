@@ -135,3 +135,6 @@ export const checkHealth = (id) =>
       method: "POST",
     }
   );
+
+  export const fetchEpisodes = (id) =>
+  handleFetch(`${API_BASE}/podcasts/${encodeURIComponent(id)}/episodes`);
