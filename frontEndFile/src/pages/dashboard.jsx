@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import EpisodeList from "../components/episodes/episodeList";
 import FeedForm from "../components/feeds/FeedForm";
@@ -12,21 +11,20 @@ export default function Dashboard() {
   useEffect(() => {
     const loadLatestEpisodes = async () => {
       setLoading(true);
+
       try {
-        
         const podcasts = await fetchPodcasts();
 
-        if (podcasts.length === 0) {
+        if (!Array.isArray(podcasts) || podcasts.length === 0) {
           setEpisodes([]);
           return;
         }
 
-       
         const latestPodcast = podcasts[0];
-
-        setEpisodes(latestPodcast.feed_details?.episodes || []);
+        setEpisodes(latestPodcast?.feed_details?.episodes || []);
       } catch (err) {
-        console.error("Failed to load episodes:", err);
+        console.error(err);
+        setEpisodes([]);
       } finally {
         setLoading(false);
       }
@@ -47,7 +45,6 @@ export default function Dashboard() {
       </div>
 
       <div className={styles.episodeList}>
-        <h2>Episodes</h2>
         {loading ? <p>Loading...</p> : <EpisodeList episodes={episodes} />}
       </div>
     </div>

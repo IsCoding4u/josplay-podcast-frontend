@@ -4,6 +4,7 @@ import Button from "../ui/Button/button";
 import Modal from "../ui/Modal/modal";
 import EpisodeList from "../episodes/episodeList";
 import Pagination from "../ui/pagination/pagination";
+
 import {
   fetchPendingSubmissions,
   fetchSubmissionDetails,
@@ -11,16 +12,17 @@ import {
   rejectSubmission,
   fetchPodcasts,
   fetchPodcast,
+  fetchEpisodes,
 } from "../../services/api";
 
 const ITEMS_PER_PAGE = 6;
-const BACKEND_URL = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
 
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState([]);
   const [approvedPodcasts, setApprovedPodcasts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [approvedPage, setApprovedPage] = useState(1);
+
   const submittingRef = useRef({});
 
   useEffect(() => {
@@ -31,36 +33,37 @@ export default function AdminDashboard() {
   const loadSubmissions = async () => {
     try {
       const data = await fetchPendingSubmissions();
+
       setSubmissions(
-        data?.map((sub) => ({
+        (data || []).map((sub) => ({
           ...sub,
           podcast_name: sub.feed_details?.title || "Untitled Podcast",
-        })) || []
+        }))
       );
     } catch (err) {
       console.error(err);
-      alert("Failed to load pending submissions.");
     }
   };
 
   const loadApprovedPodcasts = async () => {
     try {
       const data = await fetchPodcasts();
+
       const podcastsWithEpisodes = await Promise.all(
-        data.map(async (pod) => {
+        (data || []).map(async (pod) => {
           try {
-            const res = await fetch(`${BACKEND_URL}/podcasts/${pod.uuid}/episodes`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const episodesData = await res.json();
+            const episodesData = await fetchEpisodes(pod.uuid);
+
             return {
               ...pod,
               feed_details: {
                 ...pod.feed_details,
-                episodes: episodesData.episodes || [],
+                episodes: episodesData?.episodes || [],
               },
             };
           } catch (err) {
             console.error(err);
+
             return {
               ...pod,
               feed_details: {
@@ -71,10 +74,10 @@ export default function AdminDashboard() {
           }
         })
       );
-      setApprovedPodcasts(podcastsWithEpisodes || []);
+
+      setApprovedPodcasts(podcastsWithEpisodes);
     } catch (err) {
       console.error(err);
-      alert("Failed to load approved podcasts.");
     }
   };
 
@@ -86,27 +89,25 @@ export default function AdminDashboard() {
         ? await fetchPodcast(podcastOrSubmission.uuid)
         : await fetchSubmissionDetails(podcastOrSubmission.uuid);
 
+      let episodes = [];
+
       if (isApproved) {
-        try {
-          const res = await fetch(`${BACKEND_URL}/podcasts/${podcastOrSubmission.uuid}/episodes`);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const episodesData = await res.json();
-          data.feed_details = {
-            ...data.feed_details,
-            episodes: episodesData.episodes || [],
-          };
-        } catch (err) {
-          console.error(err);
-          alert("Failed to load episodes from backend.");
-          data.feed_details = { ...data.feed_details, episodes: [] };
-        }
+        const episodesData = await fetchEpisodes(podcastOrSubmission.uuid);
+        episodes = episodesData?.episodes || [];
       }
 
-      setSelected({ ...podcastOrSubmission, ...data, loading: false });
+      setSelected({
+        ...podcastOrSubmission,
+        ...data,
+        feed_details: {
+          ...data.feed_details,
+          episodes,
+        },
+        loading: false,
+      });
     } catch (err) {
       console.error(err);
       setSelected((prev) => ({ ...prev, loading: false }));
-      alert("Failed to load feed details.");
     }
   };
 
@@ -115,22 +116,25 @@ export default function AdminDashboard() {
     submittingRef.current[sub.uuid] = true;
 
     try {
-      if (action === "approve") await approveSubmission(sub.uuid);
-      else await rejectSubmission(sub.uuid);
+      if (action === "approve") {
+        await approveSubmission(sub.uuid);
+      } else {
+        await rejectSubmission(sub.uuid);
+      }
 
       await loadSubmissions();
       await loadApprovedPodcasts();
       setSelected(null);
     } catch (err) {
       console.error(err);
-      alert(`Failed to ${action} submission.`);
     } finally {
       submittingRef.current[sub.uuid] = false;
     }
   };
 
-  const totalApprovedPages = Math.ceil(approvedPodcasts.length / ITEMS_PER_PAGE);
-  const displayedApproved = approvedPodcasts.slice(
+  const totalPages = Math.ceil(approvedPodcasts.length / ITEMS_PER_PAGE);
+
+  const displayed = approvedPodcasts.slice(
     (approvedPage - 1) * ITEMS_PER_PAGE,
     approvedPage * ITEMS_PER_PAGE
   );
@@ -141,7 +145,7 @@ export default function AdminDashboard() {
 
       <section>
         <h3>Pending Submissions</h3>
-        {submissions.length === 0 && <p>No pending submissions.</p>}
+
         {submissions.map((sub) => (
           <div key={sub.uuid} className={styles.card}>
             <div>
@@ -149,8 +153,9 @@ export default function AdminDashboard() {
               <p>{sub.first_name} {sub.last_name}</p>
               <p>{sub.contact_email}</p>
             </div>
+
             <div className={styles.actions}>
-              <Button variant="primary" onClick={() => openModal(sub)}>Details</Button>
+              <Button onClick={() => openModal(sub)}>Details</Button>
               <Button variant="success" onClick={() => handleSubmission(sub, "approve")}>Approve</Button>
               <Button variant="danger" onClick={() => handleSubmission(sub, "reject")}>Reject</Button>
             </div>
@@ -158,34 +163,25 @@ export default function AdminDashboard() {
         ))}
       </section>
 
-      <section style={{ marginTop: "2rem" }}>
-        <h3 className={styles.centerTitle}>Approved Podcasts</h3>
-        {approvedPodcasts.length === 0 && <p>No approved podcasts yet.</p>}
-        {displayedApproved.map((podcast) => (
+      <section>
+        <h3>Approved Podcasts</h3>
+
+        {displayed.map((podcast) => (
           <div
             key={podcast.uuid}
             className={styles.card}
             onClick={() => openModal(podcast, true)}
-            style={{ cursor: "pointer" }}
           >
             <h4>{podcast.feed_details?.title || podcast.title}</h4>
-            {podcast.feed_details?.image && (
-              <img
-                src={podcast.feed_details.image}
-                alt="Artwork"
-                width="150"
-                style={{ borderRadius: "10px", marginTop: "10px" }}
-              />
-            )}
             <p>{podcast.feed_details?.description || "-"}</p>
-            <p><b>Status:</b> {podcast.status}</p>
-            <p><b>Episodes:</b> {podcast.feed_details?.episodes?.length || 0}</p>
+            <p>{podcast.feed_details?.episodes?.length || 0} Episodes</p>
           </div>
         ))}
-        {totalApprovedPages > 1 && (
+
+        {totalPages > 1 && (
           <Pagination
             currentPage={approvedPage}
-            totalPages={totalApprovedPages}
+            totalPages={totalPages}
             onPageChange={setApprovedPage}
           />
         )}
@@ -194,49 +190,15 @@ export default function AdminDashboard() {
       <Modal
         isOpen={!!selected}
         onClose={() => setSelected(null)}
-        title={selected?.feed_details?.title || selected?.title || "Podcast Details"}
+        title={selected?.feed_details?.title || selected?.title}
       >
         {selected && (
           <div>
-            <p><b>RSS URL:</b> <a href={selected.rss_url} target="_blank" rel="noopener noreferrer">{selected.rss_url}</a></p>
-            <p><b>Country:</b> {selected.country || "-"}</p>
-            <p><b>Language:</b> {selected.language || "-"}</p>
-            <p><b>Submitted:</b> {selected.created_at ? new Date(selected.created_at).toLocaleString() : "-"}</p>
-            {selected.loading && <p>Loading feed details...</p>}
-            {selected.feed_details && (
-              <>
-                {selected.feed_details.image && (
-                  <img
-                    src={selected.feed_details.image}
-                    alt="Artwork"
-                    width="150"
-                    style={{ borderRadius: "10px" }}
-                  />
-                )}
-                <p>{selected.feed_details.description || "-"}</p>
-                <p>Episodes: {selected.feed_details.episodes?.length || 0}</p>
-                <EpisodeList episodes={selected.feed_details.episodes || []} itemsPerPage={5} />
-              </>
-            )}
+            <p>{selected.rss_url}</p>
 
-            {!selected.status || selected.status === "pending_review" ? (
-              <div className={styles.modalActions}>
-                <Button
-                  variant="success"
-                  onClick={() => handleSubmission(selected, "approve")}
-                  disabled={submittingRef.current[selected.uuid]}
-                >
-                  {submittingRef.current[selected.uuid] ? "Approving..." : "Approve"}
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => handleSubmission(selected, "reject")}
-                  disabled={submittingRef.current[selected.uuid]}
-                >
-                  {submittingRef.current[selected.uuid] ? "Rejecting..." : "Reject"}
-                </Button>
-              </div>
-            ) : null}
+            {selected.feed_details && (
+              <EpisodeList episodes={selected.feed_details.episodes || []} />
+            )}
           </div>
         )}
       </Modal>
