@@ -4,6 +4,7 @@ import Button from "../ui/Button/button";
 import Modal from "../ui/Modal/modal";
 import EpisodeList from "../episodes/episodeList";
 import Pagination from "../ui/pagination/pagination";
+import toast from "react-hot-toast";
 
 import {
   fetchPendingSubmissions,
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
   const [approvedPodcasts, setApprovedPodcasts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [approvedPage, setApprovedPage] = useState(1);
+  const [processing, setProcessing] = useState({});
 
   const submittingRef = useRef({});
 
@@ -41,6 +43,7 @@ export default function AdminDashboard() {
         }))
       );
     } catch (err) {
+      toast.error("Failed to load submissions");
       console.error(err);
     }
   };
@@ -61,9 +64,7 @@ export default function AdminDashboard() {
                 episodes: episodesData?.episodes || [],
               },
             };
-          } catch (err) {
-            console.error(err);
-
+          } catch {
             return {
               ...pod,
               feed_details: {
@@ -77,37 +78,34 @@ export default function AdminDashboard() {
 
       setApprovedPodcasts(podcastsWithEpisodes);
     } catch (err) {
+      toast.error("Failed to load podcasts");
       console.error(err);
     }
   };
 
-  const openModal = async (podcastOrSubmission, isApproved = false) => {
-    setSelected({ ...podcastOrSubmission, loading: true, feed_details: null });
+  const openModal = async (item, isApproved = false) => {
+    setSelected({ ...item, loading: true, feed_details: null });
 
     try {
       const data = isApproved
-        ? await fetchPodcast(podcastOrSubmission.uuid)
-        : await fetchSubmissionDetails(podcastOrSubmission.uuid);
+        ? await fetchPodcast(item.uuid)
+        : await fetchSubmissionDetails(item.uuid);
 
-      let episodes = [];
-
-      if (isApproved) {
-        const episodesData = await fetchEpisodes(podcastOrSubmission.uuid);
-        episodes = episodesData?.episodes || [];
-      }
+      const episodesData = await fetchEpisodes(item.uuid);
 
       setSelected({
-        ...podcastOrSubmission,
+        ...item,
         ...data,
         feed_details: {
           ...data.feed_details,
-          episodes,
+          episodes: episodesData?.episodes || [],
         },
         loading: false,
       });
     } catch (err) {
-      console.error(err);
+      toast.error("Failed to load details");
       setSelected((prev) => ({ ...prev, loading: false }));
+      console.error(err);
     }
   };
 
@@ -115,20 +113,46 @@ export default function AdminDashboard() {
     if (submittingRef.current[sub.uuid]) return;
     submittingRef.current[sub.uuid] = true;
 
+    setProcessing((prev) => ({ ...prev, [sub.uuid]: true }));
+
+    const toastId = toast.loading(
+      action === "approve" ? "Approving..." : "Rejecting..."
+    );
+
+    const request =
+      action === "approve"
+        ? approveSubmission(sub.uuid)
+        : rejectSubmission(sub.uuid);
+
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Still processing...")), 10000)
+    );
+
     try {
-      if (action === "approve") {
-        await approveSubmission(sub.uuid);
-      } else {
-        await rejectSubmission(sub.uuid);
-      }
+      await Promise.race([request, timeout]);
+
+      toast.success(
+        action === "approve" ? "Approved successfully" : "Rejected successfully",
+        { id: toastId }
+      );
 
       await loadSubmissions();
       await loadApprovedPodcasts();
       setSelected(null);
     } catch (err) {
-      console.error(err);
+      if (err.message === "Still processing...") {
+        toast("Still processing, will update shortly", { id: toastId });
+
+        setTimeout(() => {
+          loadSubmissions();
+          loadApprovedPodcasts();
+        }, 5000);
+      } else {
+        toast.error(err.message || "Action failed", { id: toastId });
+      }
     } finally {
       submittingRef.current[sub.uuid] = false;
+      setProcessing((prev) => ({ ...prev, [sub.uuid]: false }));
     }
   };
 
@@ -150,14 +174,30 @@ export default function AdminDashboard() {
           <div key={sub.uuid} className={styles.card}>
             <div>
               <h4>{sub.podcast_name}</h4>
-              <p>{sub.first_name} {sub.last_name}</p>
+              <p>
+                {sub.first_name} {sub.last_name}
+              </p>
               <p>{sub.contact_email}</p>
             </div>
 
             <div className={styles.actions}>
               <Button onClick={() => openModal(sub)}>Details</Button>
-              <Button variant="success" onClick={() => handleSubmission(sub, "approve")}>Approve</Button>
-              <Button variant="danger" onClick={() => handleSubmission(sub, "reject")}>Reject</Button>
+
+              <Button
+                variant="success"
+                disabled={processing[sub.uuid]}
+                onClick={() => handleSubmission(sub, "approve")}
+              >
+                {processing[sub.uuid] ? "Processing..." : "Approve"}
+              </Button>
+
+              <Button
+                variant="danger"
+                disabled={processing[sub.uuid]}
+                onClick={() => handleSubmission(sub, "reject")}
+              >
+                Reject
+              </Button>
             </div>
           </div>
         ))}

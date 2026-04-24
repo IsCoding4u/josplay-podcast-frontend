@@ -6,7 +6,12 @@ const API_BASE =
 
 const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_KEY;
 
-const handleFetch = async (url, options = {}, timeout = 15000) => {
+const handleFetch = async (
+  url,
+  options = {},
+  timeout = 60000,
+  retries = 2
+) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
 
@@ -37,11 +42,17 @@ const handleFetch = async (url, options = {}, timeout = 15000) => {
 
     return data;
   } catch (err) {
-    if (err.name === "AbortError")
-      throw new Error("Request timed out. Please try again.");
+    if (retries > 0) {
+      return handleFetch(url, options, timeout, retries - 1);
+    }
 
-    if (err.message === "Failed to fetch")
-      throw new Error("Unable to connect to server. Check your network.");
+    if (err.name === "AbortError") {
+      throw new Error("Request took too long. Server is processing...");
+    }
+
+    if (err.message === "Failed to fetch") {
+      throw new Error("Network issue. Please check connection.");
+    }
 
     throw err;
   } finally {
@@ -97,14 +108,20 @@ export const fetchSubmissionDetails = (id) =>
   handleFetch(`${API_BASE}/submissions/${encodeURIComponent(id)}`);
 
 export const approveSubmission = (id) =>
-  handleFetch(`${API_BASE}/admin/approve/${encodeURIComponent(id)}`, {
-    method: "POST",
-  });
+  handleFetch(
+    `${API_BASE}/admin/approve/${encodeURIComponent(id)}`,
+    {
+      method: "POST",
+    }
+  );
 
 export const rejectSubmission = (id) =>
-  handleFetch(`${API_BASE}/admin/reject/${encodeURIComponent(id)}`, {
-    method: "POST",
-  });
+  handleFetch(
+    `${API_BASE}/admin/reject/${encodeURIComponent(id)}`,
+    {
+      method: "POST",
+    }
+  );
 
 let podcastsCache = null;
 let podcastsLastFetch = 0;
@@ -136,5 +153,5 @@ export const checkHealth = (id) =>
     }
   );
 
-  export const fetchEpisodes = (id) =>
+export const fetchEpisodes = (id) =>
   handleFetch(`${API_BASE}/podcasts/${encodeURIComponent(id)}/episodes`);
