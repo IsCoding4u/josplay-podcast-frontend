@@ -1,5 +1,6 @@
 const API_BASE =
-  process.env.REACT_APP_API_URL || "http://51.21.168.167:8000";
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "/api");
 
 const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_KEY;
 
