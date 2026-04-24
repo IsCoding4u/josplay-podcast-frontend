@@ -1,8 +1,5 @@
 const API_BASE =
-  process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://127.0.0.1:8000"
-    : "/api");
+  process.env.REACT_APP_API_URL || "http://51.21.168.167:8000";
 
 const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_KEY;
 
@@ -108,20 +105,14 @@ export const fetchSubmissionDetails = (id) =>
   handleFetch(`${API_BASE}/submissions/${encodeURIComponent(id)}`);
 
 export const approveSubmission = (id) =>
-  handleFetch(
-    `${API_BASE}/admin/approve/${encodeURIComponent(id)}`,
-    {
-      method: "POST",
-    }
-  );
+  handleFetch(`${API_BASE}/admin/approve/${encodeURIComponent(id)}`, {
+    method: "POST",
+  });
 
 export const rejectSubmission = (id) =>
-  handleFetch(
-    `${API_BASE}/admin/reject/${encodeURIComponent(id)}`,
-    {
-      method: "POST",
-    }
-  );
+  handleFetch(`${API_BASE}/admin/reject/${encodeURIComponent(id)}`, {
+    method: "POST",
+  });
 
 let podcastsCache = null;
 let podcastsLastFetch = 0;
