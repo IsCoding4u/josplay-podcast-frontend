@@ -1,8 +1,16 @@
 const API_BASE =
   process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "/api");
+  (process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:8000"
+    : "/api");
 
 const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_KEY;
+
+/**
+ * IMPORTANT:
+ * In production, ALWAYS call /api (Vercel rewrite handles backend)
+ */
+const buildUrl = (path) => `${API_BASE}${path}`;
 
 const handleFetch = async (
   url,
@@ -19,7 +27,9 @@ const handleFetch = async (
       signal: controller.signal,
       headers: {
         ...(options.headers || {}),
-        ...(ADMIN_API_KEY ? { "x-Admin-API-key": ADMIN_API_KEY } : {}),
+        ...(ADMIN_API_KEY
+          ? { "x-Admin-API-key": ADMIN_API_KEY }
+          : {}),
       },
     });
 
@@ -31,11 +41,11 @@ const handleFetch = async (
     }
 
     if (!res.ok) {
-      const errMsg =
+      throw new Error(
         data.detail ||
         data.message ||
-        `Request failed with status ${res.status}`;
-      throw new Error(errMsg);
+        `Request failed with status ${res.status}`
+      );
     }
 
     return data;
@@ -77,6 +87,8 @@ const validateSubmission = (data) => {
   return true;
 };
 
+/* ===================== API CALLS ===================== */
+
 export const submitPodcast = async (data, onSubmitting = null) => {
   validateSubmission(data);
 
@@ -87,7 +99,7 @@ export const submitPodcast = async (data, onSubmitting = null) => {
       Object.entries(data).filter(([_, v]) => v != null && v !== "")
     );
 
-    return await handleFetch(`${API_BASE}/submissions`, {
+    return await handleFetch(buildUrl("/submissions"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -100,18 +112,18 @@ export const submitPodcast = async (data, onSubmitting = null) => {
 };
 
 export const fetchPendingSubmissions = () =>
-  handleFetch(`${API_BASE}/submissions/pending`);
+  handleFetch(buildUrl("/submissions/pending"));
 
 export const fetchSubmissionDetails = (id) =>
-  handleFetch(`${API_BASE}/submissions/${encodeURIComponent(id)}`);
+  handleFetch(buildUrl(`/submissions/${encodeURIComponent(id)}`));
 
 export const approveSubmission = (id) =>
-  handleFetch(`${API_BASE}/admin/approve/${encodeURIComponent(id)}`, {
+  handleFetch(buildUrl(`/admin/approve/${encodeURIComponent(id)}`), {
     method: "POST",
   });
 
 export const rejectSubmission = (id) =>
-  handleFetch(`${API_BASE}/admin/reject/${encodeURIComponent(id)}`, {
+  handleFetch(buildUrl(`/admin/reject/${encodeURIComponent(id)}`), {
     method: "POST",
   });
 
@@ -126,7 +138,7 @@ export const fetchPodcasts = async () => {
     return podcastsCache;
   }
 
-  const data = await handleFetch(`${API_BASE}/podcasts`);
+  const data = await handleFetch(buildUrl("/podcasts"));
 
   podcastsCache = data;
   podcastsLastFetch = now;
@@ -135,15 +147,12 @@ export const fetchPodcasts = async () => {
 };
 
 export const fetchPodcast = (id) =>
-  handleFetch(`${API_BASE}/podcasts/${encodeURIComponent(id)}`);
+  handleFetch(buildUrl(`/podcasts/${encodeURIComponent(id)}`));
 
 export const checkHealth = (id) =>
-  handleFetch(
-    `${API_BASE}/podcasts/${encodeURIComponent(id)}/check-health`,
-    {
-      method: "POST",
-    }
-  );
+  handleFetch(buildUrl(`/podcasts/${encodeURIComponent(id)}/check-health`), {
+    method: "POST",
+  });
 
 export const fetchEpisodes = (id) =>
-  handleFetch(`${API_BASE}/podcasts/${encodeURIComponent(id)}/episodes`);
+  handleFetch(buildUrl(`/podcasts/${encodeURIComponent(id)}/episodes`));
