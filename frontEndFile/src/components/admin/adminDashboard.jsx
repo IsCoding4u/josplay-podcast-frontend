@@ -24,15 +24,21 @@ export default function AdminDashboard() {
   const [selected, setSelected] = useState(null);
   const [approvedPage, setApprovedPage] = useState(1);
   const [processing, setProcessing] = useState({});
+  const [loadingSubmissions, setLoadingSubmissions] = useState(true);
+  const [loadingPodcasts, setLoadingPodcasts] = useState(true);
 
   const submittingRef = useRef({});
 
   useEffect(() => {
-    loadSubmissions();
-    loadApprovedPodcasts();
+    loadAll();
   }, []);
 
+  const loadAll = async () => {
+    await Promise.all([loadSubmissions(), loadApprovedPodcasts()]);
+  };
+
   const loadSubmissions = async () => {
+    setLoadingSubmissions(true);
     try {
       const data = await fetchPendingSubmissions();
 
@@ -43,12 +49,14 @@ export default function AdminDashboard() {
         }))
       );
     } catch (err) {
-      toast.error("Failed to load submissions");
-      console.error(err);
+      toast.error(err.message || "Failed to load submissions");
+    } finally {
+      setLoadingSubmissions(false);
     }
   };
 
   const loadApprovedPodcasts = async () => {
+    setLoadingPodcasts(true);
     try {
       const data = await fetchPodcasts();
 
@@ -78,8 +86,9 @@ export default function AdminDashboard() {
 
       setApprovedPodcasts(podcastsWithEpisodes);
     } catch (err) {
-      toast.error("Failed to load podcasts");
-      console.error(err);
+      toast.error(err.message || "Failed to load podcasts");
+    } finally {
+      setLoadingPodcasts(false);
     }
   };
 
@@ -103,9 +112,8 @@ export default function AdminDashboard() {
         loading: false,
       });
     } catch (err) {
-      toast.error("Failed to load details");
+      toast.error(err.message || "Failed to load details");
       setSelected((prev) => ({ ...prev, loading: false }));
-      console.error(err);
     }
   };
 
@@ -119,37 +127,25 @@ export default function AdminDashboard() {
       action === "approve" ? "Approving..." : "Rejecting..."
     );
 
-    const request =
-      action === "approve"
-        ? approveSubmission(sub.uuid)
-        : rejectSubmission(sub.uuid);
-
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Still processing...")), 10000)
-    );
-
     try {
-      await Promise.race([request, timeout]);
+      const result =
+        action === "approve"
+          ? await approveSubmission(sub.uuid)
+          : await rejectSubmission(sub.uuid);
 
-      toast.success(
-        action === "approve" ? "Approved successfully" : "Rejected successfully",
-        { id: toastId }
+      toast.success(result.message, { id: toastId });
+
+      setSubmissions((prev) =>
+        prev.filter((item) => item.uuid !== sub.uuid)
       );
 
-      await loadSubmissions();
-      await loadApprovedPodcasts();
+      setTimeout(() => {
+        loadApprovedPodcasts();
+      }, 1000);
+
       setSelected(null);
     } catch (err) {
-      if (err.message === "Still processing...") {
-        toast("Still processing, will update shortly", { id: toastId });
-
-        setTimeout(() => {
-          loadSubmissions();
-          loadApprovedPodcasts();
-        }, 5000);
-      } else {
-        toast.error(err.message || "Action failed", { id: toastId });
-      }
+      toast.error(err.message || "Action failed", { id: toastId });
     } finally {
       submittingRef.current[sub.uuid] = false;
       setProcessing((prev) => ({ ...prev, [sub.uuid]: false }));
@@ -170,53 +166,65 @@ export default function AdminDashboard() {
       <section>
         <h3>Pending Submissions</h3>
 
-        {submissions.map((sub) => (
-          <div key={sub.uuid} className={styles.card}>
-            <div>
-              <h4>{sub.podcast_name}</h4>
-              <p>
-                {sub.first_name} {sub.last_name}
-              </p>
-              <p>{sub.contact_email}</p>
+        {loadingSubmissions ? (
+          <p>Loading submissions...</p>
+        ) : submissions.length === 0 ? (
+          <p>No pending submissions</p>
+        ) : (
+          submissions.map((sub) => (
+            <div key={sub.uuid} className={styles.card}>
+              <div>
+                <h4>{sub.podcast_name}</h4>
+                <p>
+                  {sub.first_name} {sub.last_name}
+                </p>
+                <p>{sub.contact_email}</p>
+              </div>
+
+              <div className={styles.actions}>
+                <Button onClick={() => openModal(sub)}>Details</Button>
+
+                <Button
+                  variant="success"
+                  disabled={processing[sub.uuid]}
+                  onClick={() => handleSubmission(sub, "approve")}
+                >
+                  {processing[sub.uuid] ? "Processing..." : "Approve"}
+                </Button>
+
+                <Button
+                  variant="danger"
+                  disabled={processing[sub.uuid]}
+                  onClick={() => handleSubmission(sub, "reject")}
+                >
+                  Reject
+                </Button>
+              </div>
             </div>
-
-            <div className={styles.actions}>
-              <Button onClick={() => openModal(sub)}>Details</Button>
-
-              <Button
-                variant="success"
-                disabled={processing[sub.uuid]}
-                onClick={() => handleSubmission(sub, "approve")}
-              >
-                {processing[sub.uuid] ? "Processing..." : "Approve"}
-              </Button>
-
-              <Button
-                variant="danger"
-                disabled={processing[sub.uuid]}
-                onClick={() => handleSubmission(sub, "reject")}
-              >
-                Reject
-              </Button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </section>
 
       <section>
         <h3>Approved Podcasts</h3>
 
-        {displayed.map((podcast) => (
-          <div
-            key={podcast.uuid}
-            className={styles.card}
-            onClick={() => openModal(podcast, true)}
-          >
-            <h4>{podcast.feed_details?.title || podcast.title}</h4>
-            <p>{podcast.feed_details?.description || "-"}</p>
-            <p>{podcast.feed_details?.episodes?.length || 0} Episodes</p>
-          </div>
-        ))}
+        {loadingPodcasts ? (
+          <p>Loading podcasts...</p>
+        ) : displayed.length === 0 ? (
+          <p>No approved podcasts yet</p>
+        ) : (
+          displayed.map((podcast) => (
+            <div
+              key={podcast.uuid}
+              className={styles.card}
+              onClick={() => openModal(podcast, true)}
+            >
+              <h4>{podcast.feed_details?.title || podcast.title}</h4>
+              <p>{podcast.feed_details?.description || "-"}</p>
+              <p>{podcast.feed_details?.episodes?.length || 0} Episodes</p>
+            </div>
+          ))
+        )}
 
         {totalPages > 1 && (
           <Pagination
@@ -236,8 +244,12 @@ export default function AdminDashboard() {
           <div>
             <p>{selected.rss_url}</p>
 
-            {selected.feed_details && (
-              <EpisodeList episodes={selected.feed_details.episodes || []} />
+            {selected.loading ? (
+              <p>Loading details...</p>
+            ) : (
+              <EpisodeList
+                episodes={selected.feed_details?.episodes || []}
+              />
             )}
           </div>
         )}

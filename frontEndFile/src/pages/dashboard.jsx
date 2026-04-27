@@ -9,11 +9,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadLatestEpisodes = async () => {
       setLoading(true);
 
       try {
         const podcasts = await fetchPodcasts();
+
+        if (!isMounted) return;
 
         if (!Array.isArray(podcasts) || podcasts.length === 0) {
           setEpisodes([]);
@@ -21,16 +25,23 @@ export default function Dashboard() {
         }
 
         const latestPodcast = podcasts[0];
-        setEpisodes(latestPodcast?.feed_details?.episodes || []);
+
+        const eps = latestPodcast?.feed_details?.episodes;
+
+        setEpisodes(Array.isArray(eps) ? eps : []);
       } catch (err) {
         console.error(err);
-        setEpisodes([]);
+        if (isMounted) setEpisodes([]);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadLatestEpisodes();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -45,7 +56,13 @@ export default function Dashboard() {
       </div>
 
       <div className={styles.episodeList}>
-        {loading ? <p>Loading...</p> : <EpisodeList episodes={episodes} />}
+        {loading ? (
+          <p>Loading...</p>
+        ) : episodes.length > 0 ? (
+          <EpisodeList episodes={episodes} />
+        ) : (
+          <p>No episodes available</p>
+        )}
       </div>
     </div>
   );
