@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import styles from "./admin.module.css";
 import Button from "../ui/Button/button";
 import Modal from "../ui/Modal/modal";
@@ -29,15 +29,7 @@ export default function AdminDashboard() {
 
   const submittingRef = useRef({});
 
-  useEffect(() => {
-    loadAll();
-  }, []);
-
-  const loadAll = async () => {
-    await Promise.all([loadSubmissions(), loadApprovedPodcasts()]);
-  };
-
-  const loadSubmissions = async () => {
+  const loadSubmissions = useCallback(async () => {
     setLoadingSubmissions(true);
     try {
       const data = await fetchPendingSubmissions();
@@ -53,9 +45,9 @@ export default function AdminDashboard() {
     } finally {
       setLoadingSubmissions(false);
     }
-  };
+  }, []);
 
-  const loadApprovedPodcasts = async () => {
+  const loadApprovedPodcasts = useCallback(async () => {
     setLoadingPodcasts(true);
     try {
       const data = await fetchPodcasts();
@@ -90,7 +82,15 @@ export default function AdminDashboard() {
     } finally {
       setLoadingPodcasts(false);
     }
-  };
+  }, []);
+
+  const loadAll = useCallback(async () => {
+    await Promise.all([loadSubmissions(), loadApprovedPodcasts()]);
+  }, [loadSubmissions, loadApprovedPodcasts]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   const openModal = async (item, isApproved = false) => {
     setSelected({ ...item, loading: true, feed_details: null });
@@ -119,6 +119,7 @@ export default function AdminDashboard() {
 
   const handleSubmission = async (sub, action) => {
     if (submittingRef.current[sub.uuid]) return;
+
     submittingRef.current[sub.uuid] = true;
 
     setProcessing((prev) => ({ ...prev, [sub.uuid]: true }));
